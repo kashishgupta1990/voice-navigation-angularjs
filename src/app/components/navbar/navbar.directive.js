@@ -21,13 +21,23 @@
     return directive;
 
     /** @ngInject */
-    function NavbarController(moment, $state, $rootScope) {
+    function NavbarController(moment, $state, $rootScope, $scope) {
       var vm = this;
 
+      if($rootScope.micFlag == undefined){
+        $rootScope.micFlag = false;
+      }
       $rootScope.$watch($rootScope.currentState,function(){
         vm.currentState = $rootScope.currentState;
-        console.log(vm.currentState);
       });
+
+      vm.micAction = function(){
+        if(!$rootScope.speechAPI.getState()){
+          $rootScope.speechAPI.start();
+        }else{
+          $rootScope.speechAPI.end();
+        }
+      };
 
       // "vm.creationDate" is available by directive option "bindToController: true"
       vm.relativeDate = moment(vm.creationDate).fromNow();

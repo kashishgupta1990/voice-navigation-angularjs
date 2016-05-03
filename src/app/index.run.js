@@ -8,54 +8,100 @@
     .run(voiceManager);
 
   /** @ngInject */
-  function stateOperation($rootScope) {
+  function stateOperation($rootScope, $timeout) {
     $rootScope
       .$on('$stateChangeSuccess',
         function (event, toState, toParams, fromState, fromParams) {
           $rootScope.currentState = toState.name;
+          $timeout(function(){
+            var micImageFlag = $rootScope.speechAPI.getState();
+            if(!micImageFlag){
+              $('#micImg')[0].src = 'assets/images/mic.gif';
+            }else{
+              $('#micImg')[0].src = 'assets/images/mic-animate.gif';
+            }
+          },300);
         });
   }
 
   /** @ngInject */
-  function runBlock($log) {
+  function runBlock($log, $timeout) {
     $log.debug('runBlock end');
+
+
   }
 
   /** @ngInject */
-  function voiceManager($window, $state) {
+  function voiceManager($rootScope, $window, $state) {
+
+    var recognition;
+    var process = _voiceManagerProcess();
 
     // Checking the support
     if ($window.webkitSpeechRecognition) {
-      var recognition = new webkitSpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-      var process = _voiceManagerProcess();
-      recognition.onresult = function (event) {
-        console.log(event);
-        process.getCommand(event, $state);
+      $rootScope.speechAPI = {
+        start: function () {
+          recognition = new $window.webkitSpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          recognition.lang = "en-US";
+
+          recognition.onstart = function (event) {
+            console.log('On Start: ');
+            $rootScope.micFlag = true;
+            $('#micImg')[0].src = 'assets/images/mic-animate.gif';
+          };
+          recognition.onresult = function (event) {
+            var final_transcript = '';
+            var interim_transcript = '';
+
+            for (var i = event.resultIndex; i < event.results.length; i++) {
+              if (event.results[i].isFinal) {
+                final_transcript += event.results[i][0].transcript;
+              } else {
+                interim_transcript += event.results[i][0].transcript;
+              }
+            }
+
+            final_transcript = final_transcript.toLocaleLowerCase().trim();
+            console.log('Final Transcript: ', final_transcript);
+
+            process.runCommand(final_transcript, $state);
+          };
+          recognition.onerror = function () {
+            console.log('On Error: ', arguments);
+          };
+          recognition.onend = function () {
+            $('#micImg')[0].src = 'assets/images/mic.gif';
+            recognition = null;
+            console.log('On End: ', arguments);
+          };
+          recognition.start();
+        },
+        end: function () {
+          recognition.stop();
+        },
+        getState:function(){
+          return recognition?true:false;
+        }
       };
-      recognition.start();
+    } else {
+      $rootScope.speechAPI = {
+        start:function(){
+          alert('Your browser not supported!! Please Update.');
+        },
+        end:function(){
+          alert('Your browser not supported!! Please Update.')
+        }
+      };
     }
   }
 
   // Private Methods
   function _voiceManagerProcess() {
     return {
-      getCommand: function (event, $state) {
-        var command = '';
-        if (event && event.results && event.results[0] && event.results[0][0] && event.results[0][0].transcript) {
-          angular.forEach(event.results, function (value, key) {
-            command = value[0].transcript;
-            console.log('In loop: ', command);
-          });
-          console.log('Command: ', command);
-          this.runCommand(command.trim().toLowerCase(), $state);
-        }
-      },
       runCommand: function (command, $state) {
         var _currentX, _currentY;
-        var actionItem;
         switch (command) {
           case 'home':
             $state.go('home');
@@ -76,24 +122,10 @@
             _currentY = window.pageYOffset;
             window.scrollTo(_currentX, _currentY - 800);
             break;
-          case 'builder search':
-            $('#builderSearch')[0].placeholder = 'Say Builder Name';
-            actionItem = $('#builderSearch')[0];
-            break;
-          case 'go':
-            if (actionItem) {
-              alert('Searching for ' + actionItem.value);
-              actionItem.placeholder = 'Say Builder Search';
-              actionItem = '';
-            }
-            break;
           case 'open google':
             window.location.href = 'http://google.com';
-                break;
+            break;
           default:
-            if (actionItem) {
-              actionItem.value = command;
-            }
             console.log('Oppps I dont know what you are saying!!!. Please try once again.');
         }
       }
