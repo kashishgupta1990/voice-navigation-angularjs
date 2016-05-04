@@ -30,6 +30,9 @@
       $rootScope.$watch($rootScope.currentState,function(){
         vm.currentState = $rootScope.currentState;
       });
+      $rootScope.$watch($rootScope.message,function(){
+        vm.message = $rootScope.message;
+      });
 
       vm.micAction = function(){
         if(!$rootScope.speechAPI.getState()){

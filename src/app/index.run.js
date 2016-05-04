@@ -13,14 +13,14 @@
       .$on('$stateChangeSuccess',
         function (event, toState, toParams, fromState, fromParams) {
           $rootScope.currentState = toState.name;
-          $timeout(function(){
+          $timeout(function () {
             var micImageFlag = $rootScope.speechAPI.getState();
-            if(!micImageFlag){
+            if (!micImageFlag) {
               $('#micImg')[0].src = 'assets/images/mic.gif';
-            }else{
+            } else {
               $('#micImg')[0].src = 'assets/images/mic-animate.gif';
             }
-          },300);
+          }, 300);
         });
   }
 
@@ -50,6 +50,7 @@
             console.log('On Start: ');
             $rootScope.micFlag = true;
             $('#micImg')[0].src = 'assets/images/mic-animate.gif';
+            $rootScope.message = '';
           };
           recognition.onresult = function (event) {
             var final_transcript = '';
@@ -64,9 +65,10 @@
             }
 
             final_transcript = final_transcript.toLocaleLowerCase().trim();
+            $rootScope.message = final_transcript;
             console.log('Final Transcript: ', final_transcript);
 
-            process.runCommand(final_transcript, $state);
+            process.runCommand(final_transcript, $state, $rootScope);
           };
           recognition.onerror = function () {
             console.log('On Error: ', arguments);
@@ -79,18 +81,19 @@
           recognition.start();
         },
         end: function () {
+          $rootScope.message = '';
           recognition.stop();
         },
-        getState:function(){
-          return recognition?true:false;
+        getState: function () {
+          return recognition ? true : false;
         }
       };
     } else {
       $rootScope.speechAPI = {
-        start:function(){
+        start: function () {
           alert('Your browser not supported!! Please Update.');
         },
-        end:function(){
+        end: function () {
           alert('Your browser not supported!! Please Update.')
         }
       };
@@ -100,7 +103,7 @@
   // Private Methods
   function _voiceManagerProcess() {
     return {
-      runCommand: function (command, $state) {
+      runCommand: function (command, $state, $rootScope) {
         var _currentX, _currentY;
         switch (command) {
           case 'home':
@@ -124,6 +127,9 @@
             break;
           case 'open google':
             window.location.href = 'http://google.com';
+            break;
+          case 'stop':
+            $rootScope.speechAPI.end();
             break;
           default:
             console.log('Oppps I dont know what you are saying!!!. Please try once again.');
