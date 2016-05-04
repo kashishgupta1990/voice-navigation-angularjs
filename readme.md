@@ -9,3 +9,7 @@
 - `npm install bower -g`
 - `npm install`
 - `bower install`
+
+## To start the application
+
+- `gulp serve`
